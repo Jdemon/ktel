@@ -25,12 +25,12 @@ import (
 )
 
 type app struct {
-	cfg            *config.Config
+	Cfg            *config.Config
 	Logger         *zap.SugaredLogger
 	KafkaClient    *kgo.Client
 	HealthChecker  *health.Checker
-	tracerProvider *sdktrace.TracerProvider
-	meterProvider  *metric.MeterProvider
+	TracerProvider *sdktrace.TracerProvider
+	MeterProvider  *metric.MeterProvider
 }
 
 func New() (*app, error) {
@@ -59,12 +59,12 @@ func New() (*app, error) {
 	}
 
 	return &app{
-		cfg:            cfg,
+		Cfg:            cfg,
 		Logger:         zap.S(),
 		KafkaClient:    kafkaClient,
 		HealthChecker:  healthChecker,
-		tracerProvider: tp,
-		meterProvider:  mp,
+		TracerProvider: tp,
+		MeterProvider:  mp,
 	}, nil
 }
 
@@ -113,14 +113,14 @@ func (a *app) startHealthCheckServer(_ context.Context, wg *sync.WaitGroup) *htt
 	mux.HandleFunc("/ready", a.HealthChecker.ReadinessProbe)
 
 	server := &http.Server{
-		Addr:    ":" + a.cfg.Server.Port,
+		Addr:    ":" + a.Cfg.Server.Port,
 		Handler: mux,
 	}
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		a.Logger.Debugf("Health check server starting on port %s", a.cfg.Server.Port)
+		a.Logger.Debugf("Health check server starting on port %s", a.Cfg.Server.Port)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			a.Logger.Fatalf("Health check server failed: %v", err)
 		}
@@ -137,7 +137,7 @@ func (a *app) startConsumer(ctx context.Context, wg *sync.WaitGroup, proc proces
 	}
 
 	clientAdapter := &consumer.KgoClientAdapter{Client: a.KafkaClient}
-	instrumentedProc := processor.NewInstrumentingProcessor(proc, instrumentor, a.tracerProvider.Tracer(a.cfg.AppName))
+	instrumentedProc := processor.NewInstrumentingProcessor(proc, instrumentor, a.TracerProvider.Tracer(a.Cfg.AppName))
 	appConsumer := consumer.New(clientAdapter, instrumentedProc, a.Logger)
 
 	a.Logger.Debug("Kafka consumer started...")
@@ -163,13 +163,13 @@ func (a *app) shutdownHTTPServer(server *http.Server) {
 }
 
 func (a *app) shutdownOtelProviders() {
-	if a.tracerProvider != nil {
-		if err := a.tracerProvider.Shutdown(context.Background()); err != nil {
+	if a.TracerProvider != nil {
+		if err := a.TracerProvider.Shutdown(context.Background()); err != nil {
 			a.Logger.Errorf("Error shutting down tracer provider: %v", err)
 		}
 	}
-	if a.meterProvider != nil {
-		if err := a.meterProvider.Shutdown(context.Background()); err != nil {
+	if a.MeterProvider != nil {
+		if err := a.MeterProvider.Shutdown(context.Background()); err != nil {
 			a.Logger.Errorf("Error shutting down meter provider: %v", err)
 		}
 	}

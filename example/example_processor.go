@@ -10,6 +10,7 @@ import (
 	"github.com/Jdemon/ktel/processor"
 	"github.com/goccy/go-json"
 	"github.com/twmb/franz-go/pkg/kgo"
+
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
