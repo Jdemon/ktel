@@ -1,0 +1,23 @@
+kafka:
+  brokers: "localhost:29092" # Can be overridden by KAFKA_BROKERS env var
+  topic: "dcb.ddp.document.result"
+  group: "kafka-consumer-group"
+  rebalanceStrategy: "roundrobin" # options: roundrobin, range, sticky
+  tls:
+    enabled: false
+    caFile: ""   # Path to CA certificate file (e.g., /etc/ssl/certs/ca.pem)
+    certFile: "" # Path to client certificate file
+    keyFile: ""  # Path to client key file
+  sasl:
+    enabled: false
+    mechanism: "SCRAM-SHA-512" # options: PLAIN, SCRAM-SHA-256, SCRAM-SHA-512
+    username: ""
+    password: ""
+server:
+  port: "1323"
+otel:
+  enabled: true # Set to true to enable OpenTelemetry
+  exporter:
+    grpc:
+      endpoint: "localhost:4317" # Default gRPC port
+appName: "kafka-consumer" # The application name to include in every log message
