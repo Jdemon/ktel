@@ -1,4 +1,4 @@
-package kgo
+package ikgo
 
 import (
 	"context"

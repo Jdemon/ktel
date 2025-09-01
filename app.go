@@ -13,7 +13,7 @@ import (
 	"github.com/Jdemon/ktel/config"
 	"github.com/Jdemon/ktel/consumer"
 	"github.com/Jdemon/ktel/health"
-	internalkgo "github.com/Jdemon/ktel/kgo"
+	internalkgo "github.com/Jdemon/ktel/ikgo"
 	"github.com/Jdemon/ktel/logger"
 	"github.com/Jdemon/ktel/otel"
 	"github.com/Jdemon/ktel/processor"
@@ -28,6 +28,7 @@ type app struct {
 	Cfg            *config.Config
 	Logger         *zap.SugaredLogger
 	KafkaClient    *kgo.Client
+	Producer       *internalkgo.Producer
 	HealthChecker  *health.Checker
 	TracerProvider *sdktrace.TracerProvider
 	MeterProvider  *metric.MeterProvider
@@ -58,10 +59,13 @@ func New() (*app, error) {
 		return nil, fmt.Errorf("failed to create Kafka client: %w", err)
 	}
 
+	producer := internalkgo.NewProducer(kafkaClient)
+
 	return &app{
 		Cfg:            cfg,
 		Logger:         zap.S(),
 		KafkaClient:    kafkaClient,
+		Producer:       producer,
 		HealthChecker:  healthChecker,
 		TracerProvider: tp,
 		MeterProvider:  mp,
@@ -138,7 +142,7 @@ func (a *app) startConsumer(ctx context.Context, wg *sync.WaitGroup, proc proces
 
 	clientAdapter := &consumer.KgoClientAdapter{Client: a.KafkaClient}
 	instrumentedProc := processor.NewInstrumentingProcessor(proc, instrumentor, a.TracerProvider.Tracer(a.Cfg.AppName))
-	appConsumer := consumer.New(clientAdapter, instrumentedProc, a.Logger)
+	appConsumer := consumer.New(clientAdapter, instrumentedProc, a.Logger, a.Producer)
 
 	a.Logger.Debug("Kafka consumer started...")
 

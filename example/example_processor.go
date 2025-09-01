@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/Jdemon/ktel"
+	internalKgo "github.com/Jdemon/ktel/ikgo"
 	"github.com/Jdemon/ktel/processor"
 	"github.com/goccy/go-json"
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -29,7 +30,7 @@ func run() error {
 		return fmt.Errorf("failed to create application: %w", err)
 	}
 
-	return app.Start(NewExampleProcessor(app.Logger, app.KafkaClient))
+	return app.Start(NewExampleProcessor(app.Logger))
 }
 
 // ResultMessage defines the structure of the incoming Kafka message
@@ -40,13 +41,12 @@ type ResultMessage struct {
 
 // ExampleProcessor processes
 type ExampleProcessor struct {
-	logger      *zap.SugaredLogger
-	trxPool     *sync.Pool
-	KafkaClient *kgo.Client
+	logger  *zap.SugaredLogger
+	trxPool *sync.Pool
 }
 
 // NewExampleProcessor creates a new NewExampleProcessor.
-func NewExampleProcessor(logger *zap.SugaredLogger, kafkaClient *kgo.Client) processor.Processor {
+func NewExampleProcessor(logger *zap.SugaredLogger) processor.Processor {
 	return &ExampleProcessor{
 		logger: logger,
 		trxPool: &sync.Pool{
@@ -54,12 +54,11 @@ func NewExampleProcessor(logger *zap.SugaredLogger, kafkaClient *kgo.Client) pro
 				return new(ResultMessage)
 			},
 		},
-		KafkaClient: kafkaClient,
 	}
 }
 
 // ProcessRecord processes a single Kafka record for e-withholding.
-func (p *ExampleProcessor) ProcessRecord(ctx context.Context, record *kgo.Record) (err error) {
+func (p *ExampleProcessor) ProcessRecord(ctx context.Context, record *kgo.Record, producer *internalKgo.Producer) (err error) {
 	span := trace.SpanFromContext(ctx)
 
 	msg := p.trxPool.Get().(*ResultMessage)
@@ -85,9 +84,12 @@ func (p *ExampleProcessor) ProcessRecord(ctx context.Context, record *kgo.Record
 		Topic: "result.topic",
 		Value: []byte("value"),
 	}
-	if err = p.KafkaClient.ProduceSync(ctx, resultRecord).FirstErr(); err != nil {
-		return err
-	}
+
+	producer.Produce(ctx, resultRecord, func(rec *kgo.Record, err error) {
+		if err != nil {
+			p.logger.Errorw("Failed to produce record", "error", err)
+		}
+	})
 
 	span.SetStatus(codes.Ok, "message processed successfully")
 	return nil
