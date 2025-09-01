@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	internalKgo "github.com/Jdemon/ktel/ikgo"
 	"github.com/Jdemon/ktel/processor"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"go.uber.org/zap"
@@ -39,13 +40,15 @@ type Consumer struct {
 	client    KafkaClient
 	processor processor.Processor
 	logger    *zap.SugaredLogger
+	producer  *internalKgo.Producer
 }
 
-func New(client KafkaClient, processor processor.Processor, logger *zap.SugaredLogger) *Consumer {
+func New(client KafkaClient, processor processor.Processor, logger *zap.SugaredLogger, producer *internalKgo.Producer) *Consumer {
 	return &Consumer{
 		client:    client,
 		processor: processor,
 		logger:    logger,
+		producer:  producer,
 	}
 }
 
@@ -69,7 +72,7 @@ func (c *Consumer) Run(ctx context.Context) {
 			wg.Add(1)
 			go func(rec *kgo.Record) {
 				defer wg.Done()
-				if err := c.processor.ProcessRecord(rec.Context, rec); err != nil {
+				if err := c.processor.ProcessRecord(rec.Context, rec, c.producer); err != nil {
 					c.logger.Errorw("Failed to process record", "error", err, "topic", rec.Topic, "partition", rec.Partition, "offset", rec.Offset)
 				}
 			}(record)

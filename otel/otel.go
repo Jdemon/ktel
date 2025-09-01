@@ -6,13 +6,13 @@ import (
 
 	"github.com/Jdemon/ktel/config"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
 	"go.uber.org/zap"
 )
 
@@ -27,7 +27,7 @@ func InitOtelProviders(cfg *config.Config) (*sdktrace.TracerProvider, *metric.Me
 
 	ctx := context.Background()
 
-	res, err := resource.Merge(resource.Default(), resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceName(cfg.AppName)))
+	res, err := resource.Merge(resource.Default(), resource.NewWithAttributes(cfg.Otel.SchemaURL, attribute.String("service.name", cfg.AppName)))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create resource: %w", err)
 	}

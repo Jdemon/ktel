@@ -34,8 +34,9 @@ type Config struct {
 		Port string `mapstructure:"port" validate:"required"`
 	} `mapstructure:"server"`
 	Otel struct {
-		Enabled  bool `mapstructure:"enabled"`
-		Exporter struct {
+		Enabled   bool   `mapstructure:"enabled"`
+		SchemaURL string `mapstructure:"schemaURL"`
+		Exporter  struct {
 			Grpc struct {
 				Endpoint string `mapstructure:"endpoint"`
 			} `mapstructure:"grpc"`

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	internalKgo "github.com/Jdemon/ktel/ikgo"
 	"github.com/Jdemon/ktel/telemetry"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"go.opentelemetry.io/otel/trace"
@@ -12,7 +13,7 @@ import (
 
 // Processor defines the interface for processing Kafka records.
 type Processor interface {
-	ProcessRecord(ctx context.Context, record *kgo.Record) error
+	ProcessRecord(ctx context.Context, record *kgo.Record, producer *internalKgo.Producer) error
 }
 
 // InstrumentingProcessor is a decorator that adds instrumentation to a Processor.
@@ -32,7 +33,7 @@ func NewInstrumentingProcessor(processor Processor, instrumentor *telemetry.Inst
 }
 
 // ProcessRecord processes a Kafka record and instruments the operation.
-func (p *InstrumentingProcessor) ProcessRecord(ctx context.Context, record *kgo.Record) (err error) {
+func (p *InstrumentingProcessor) ProcessRecord(ctx context.Context, record *kgo.Record, producer *internalKgo.Producer) (err error) {
 	spanName := fmt.Sprintf("%s process", record.Topic)
 	ctx, span := p.tracer.Start(ctx, spanName)
 	defer span.End()
@@ -42,5 +43,5 @@ func (p *InstrumentingProcessor) ProcessRecord(ctx context.Context, record *kgo.
 		p.instrumentor.InstrumentMessage(ctx, record, err == nil, startTime)
 	}()
 
-	return p.processor.ProcessRecord(ctx, record)
+	return p.processor.ProcessRecord(ctx, record, producer)
 }
