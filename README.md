@@ -40,6 +40,7 @@ go get github.com/Jdemon/ktel
     	"log"
 
     	"github.com/Jdemon/ktel"
+        internalKgo "github.com/Jdemon/ktel/ikgo"
     	"github.com/Jdemon/ktel/processor"
     	"github.com/goccy/go-json"
     	"github.com/twmb/franz-go/pkg/kgo"
@@ -82,7 +83,7 @@ go get github.com/Jdemon/ktel
     }
 
     // ProcessRecord processes a single Kafka record.
-    func (p *ExampleProcessor) ProcessRecord(ctx context.Context, record *kgo.Record) error {
+    func (p *ExampleProcessor) ProcessRecord(ctx context.Context, record *kgo.Record, , producer *internalKgo.Producer)) error {
     	span := trace.SpanFromContext(ctx)
 
     	var msg Message
@@ -126,6 +127,7 @@ go get github.com/Jdemon/ktel
       port: "1323"
     otel:
       enabled: true # Set to true to enable OpenTelemetry
+      schemaURL: "https://opentelemetry.io/schemas/1.34.0"
       exporter:
         grpc:
           endpoint: "localhost:4317" # Default gRPC port
